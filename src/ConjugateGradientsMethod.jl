@@ -1,6 +1,10 @@
+# import Pkg
+# Pkg.add("MatrixMarket")
+
 using Printf
 using SparseArrays
 using LinearAlgebra
+using MatrixMarket
 
 # -----------------------------------------------
 #
@@ -35,6 +39,10 @@ function read_csc_matrix(filename)
   nzval = parse.(Float64, split(readline(file)))
   close(file)
   return sparse(colptr, rowval, nzval)
+end
+
+function read_mtx_matrix(filename)
+  return MatrixMarket.mmread(filename, true)
 end
 
 # Вывод полученного вектора
@@ -81,3 +89,6 @@ end
 
 print("x: ")
 print_vector(vector_x, "%.3f", eps)
+
+
+println(read_mtx_matrix("resources/bcsstk16.mtx"))
