@@ -1,10 +1,7 @@
-# import Pkg
-# Pkg.add("MatrixMarket")
-
 using Printf
 using SparseArrays
 using LinearAlgebra
-using MatrixMarket
+# using MatrixMarket
 
 # -----------------------------------------------
 #
@@ -89,6 +86,3 @@ end
 
 print("x: ")
 print_vector(vector_x, "%.3f", eps)
-
-
-println(read_mtx_matrix("resources/bcsstk16.mtx"))
