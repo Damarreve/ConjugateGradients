@@ -34,7 +34,7 @@ public class MtxToCscConverter {
         BufferedReader reader = new BufferedReader(new FileReader(input));
         while ((line = reader.readLine()) != null) {
             if (skip-- > 0) continue;
-            String[] digits = line.split(" ");
+            String[] digits = line.split("\\s+");
             rows.add(digits[0].trim() + " ");
             cols.add(digits[1].trim() + " ");
             values.add(digits[2].trim() + " ");

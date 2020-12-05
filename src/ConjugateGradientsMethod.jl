@@ -86,3 +86,5 @@ end
 
 print("x: ")
 print_vector(vector_x, "%.3f", eps)
+
+println(read_csc_matrix("resources/bcsstk16.csc"))
