@@ -61,7 +61,8 @@ end
 # Вывод полученного вектора
 function print_vector(vector, mask, eps)
   for i in vector_x[:]
-    @printf(" %.5f ", (abs(i) < eps ? 0 : i))
+    # @printf(" %.15f ", (abs(i) < eps ? 0 : i))
+    print(" ", (abs(i) < eps ? 0 : i))
   end
 end
 
@@ -93,7 +94,10 @@ function gradients()
   end
 
   global i = 1
-  while (eps < (norm(vector_r) / norm(vector_b)) || i <= length(vector_b))
+  while (eps < (norm(vector_r) / norm(vector_b)))
+    if i == length(vector_b)
+      break
+    end
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
@@ -108,7 +112,7 @@ function gradients()
     if (debug) println("beta[", i, "]: ", beta) end
     global vector_z = vector_r + beta * vector_zp
     if (debug) println("vector_z[", i, "]: ", vector_z) end
-    if (debug) println() end
+    if (debug) println("Step #", i, " of ", length(vector_b)) end
     global i += 1
   end
 
@@ -134,7 +138,10 @@ function gradients_parallel()
   end
 
   global i = 1
-  while (eps < (norm(vector_r) / norm(vector_b)) || i <= length(vector_b))
+  while (eps < (norm(vector_r) / norm(vector_b)))
+    if i == length(vector_b)
+      break
+    end
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
@@ -162,7 +169,7 @@ t_start = now()
 t_end = now()
 println("gradients(): ", t_end - t_start)
 
-# t_start = now()
-# @time gradients_parallel()
-# t_end = now()
-# println("gradients_parallel(): ", t_end - t_start)
+t_start = now()
+@time gradients_parallel()
+t_end = now()
+println("gradients_parallel(): ", t_end - t_start)

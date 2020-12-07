@@ -25,7 +25,7 @@ public class RandomVectorGenerator {
             for (int i = 1; i <= length; i++) {
                 if (Math.abs(random.nextInt()) % 100 + 1 > zeroChance) {
                     indices.add(i);
-                    values.add(random.nextDouble());
+                    values.add(random.nextDouble() * 1000);
                 }
             }
         } while (indices.isEmpty());
