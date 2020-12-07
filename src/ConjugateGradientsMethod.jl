@@ -52,18 +52,6 @@ function s_multiply(_vector1, _vector2)
   return result[]
 end
 
-function dep_s_multiply(_vector1, _vector2)
-  result = 0.0
-  mlen = min(length(_vector1), length(_vector2))
-  Threads.@threads for i = 1:mlen
-    if _vector1[i] == 0 || _vector2[i] == 0
-      continue
-    end
-    result += _vector1[i] * _vector2[i]
-  end
-  return result
-end
-
 # Умножение матрицы на вектор
 function mv_multiply(_matrix, _vector)
   result = zeros(length(_vector))
@@ -74,9 +62,8 @@ function mv_multiply(_matrix, _vector)
 end
 
 # Вывод полученного вектора
-function print_vector(vector, mask, eps)
+function print_vector(vector, eps)
   for i in vector_x[:]
-    # @printf(" %.15f ", (abs(i) < eps ? 0 : i))
     print(" ", (abs(i) < eps ? 0 : i))
   end
 end
@@ -144,7 +131,7 @@ function gradients(matrix, vector)
   end
 
   # print("x: ")
-  # print_vector(vector_x, "%.3f", eps)
+  # print_vector(vector_x, eps)
 end
 
 # Реализация метода сопряжённых градиентов с использованием параллельных вычислений
@@ -188,7 +175,7 @@ function gradients_parallel(matrix, vector)
   end
 
   # print("x: ")
-  # print_vector(vector_x, "%.3f", eps)
+  # print_vector(vector_x, eps)
 end
 
 matrix_A = read_csc_matrix(matrix_file)
