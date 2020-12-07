@@ -74,10 +74,25 @@ end
 # Основная часть
 # --------------
 
+# 5x5
 # matrix_file = "resources/little_matrix.csc"
-matrix_file = "resources/nos5.csc"
 # vector_file = "resources/little_vector.csc"
+
+# 468x468
+matrix_file = "resources/nos5.csc"
 vector_file = "resources/nos5_vector.csc"
+
+# 1074x1074
+# matrix_file = "resources/bcsstk08.csc"
+# vector_file = "resources/bcsstk08_vector.csc"
+
+# 1473x1473
+# matrix_file = "resources/bcsstk12.csc"
+# vector_file = "resources/bcsstk12_vector.csc"
+
+# 2003x2003
+# matrix_file = "resources/bcsstk13.csc"
+# vector_file = "resources/bcsstk13_vector.csc"
 
 # Реализация метода сопряжённых градиентов
 function gradients()
