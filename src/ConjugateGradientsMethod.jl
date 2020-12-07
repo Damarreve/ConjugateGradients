@@ -1,7 +1,8 @@
+using Dates
 using Printf
 using SparseArrays
 using LinearAlgebra
-# using MatrixMarket
+using Distributed
 
 # -----------------------------------------------
 #
@@ -38,8 +39,23 @@ function read_csc_matrix(filename)
   return sparse(colptr, rowval, nzval)
 end
 
-function read_mtx_matrix(filename)
-  return MatrixMarket.mmread(filename, true)
+# Скалярное произведение векторов
+function s_multiply(_vector1, _vector2)
+  result = 0.0
+  mlen = min(length(_vector1), length(_vector2))
+  @sync @distributed for i = 1:mlen
+    result += _vector1[i] * _vector2[i]
+  end
+  return result
+end
+
+# Умножение матрицы на вектор
+function mv_multiply(_matrix, _vector)
+  result = zeros(length(_vector))
+  @sync @distributed for i = 1:length(result)
+    result[i] = s_multiply(_matrix[i, :], _vector)
+  end
+  return result
 end
 
 # Вывод полученного вектора
@@ -49,42 +65,104 @@ function print_vector(vector, mask, eps)
   end
 end
 
-matrix_A = read_csc_matrix("resources/little_matrix.csc")
-vector_b = read_csc_vector("resources/little_vector.csc")
 
-vector_x = Array{Float64,1}(zeros(length(vector_b))) .+ 0.2
-vector_r = vector_b - (matrix_A * vector_x)
-vector_z = vector_r
+# --------------
+# Основная часть
+# --------------
 
-if (info) 
-  println("vector_b: ", vector_b)
-  println("matrix_A: ", matrix_A)
-  println("vector_x0: ", vector_x)
-  println("vector_r0: ", vector_r)
-  println("vector_z0: ", vector_z)
+matrix_file = "resources/little_matrix.csc"
+# matrix_file = "resources/bcsstm24.csc"
+vector_file = "resources/little_vector.csc"
+# vector_file = "resources/bcsstm24_vector.csc"
+
+# Реализация метода сопряжённых градиентов
+function gradients()
+  matrix_A = read_csc_matrix(matrix_file)
+  vector_b = read_csc_vector(vector_file)
+
+  global vector_x = Array{Float64,1}(zeros(length(vector_b)))
+  global vector_r = vector_b - (matrix_A * vector_x)
+  global vector_z = vector_r
+
+  if (info)
+    println("vector_b: ", vector_b)
+    println("matrix_A: ", matrix_A)
+    println("vector_x0: ", vector_x)
+    println("vector_r0: ", vector_r)
+    println("vector_z0: ", vector_z)
+  end
+
+  global i = 1
+  while (eps < (norm(vector_r) / norm(vector_b)) || i <= length(vector_b))
+    local vector_xp = vector_x
+    local vector_rp = vector_r
+    local vector_zp = vector_z
+    alpha = (transpose(vector_rp) * vector_rp) / (transpose(matrix_A * vector_zp) * vector_zp)
+    if (debug) println("alpha[", i, "]: ", alpha) end
+    global vector_x = vector_xp + alpha * vector_zp
+    if (debug) println("vector_x[", i, "]: ", vector_x) end
+    global vector_r = vector_rp - alpha * (matrix_A * vector_zp)
+    if (debug) println("vector_r[", i, "]: ", vector_r) end
+    if (debug) println("vector_rm[", i, "]: ", vector_rp) end
+    beta = (transpose(vector_r) * vector_r) / (transpose(vector_rp) * vector_rp)
+    if (debug) println("beta[", i, "]: ", beta) end
+    global vector_z = vector_r + beta * vector_zp
+    if (debug) println("vector_z[", i, "]: ", vector_z) end
+    if (debug) println() end
+    global i += 1
+  end
+
+  print("x: ")
+  print_vector(vector_x, "%.3f", eps)
 end
 
-i = 1
-while (eps < (norm(vector_r) / norm(vector_b)) || i <= length(vector_b))
-  local vector_xp = vector_x
-  local vector_rp = vector_r
-  local vector_zp = vector_z
-  alpha = (transpose(vector_rp) * vector_rp) / (transpose(matrix_A * vector_zp) * vector_zp)
-  if (debug) println("alpha[", i, "]: ", alpha) end
-  global vector_x = vector_xp + alpha * vector_zp
-  if (debug) println("vector_x[", i, "]: ", vector_x) end
-  global vector_r = vector_rp - alpha * (matrix_A * vector_zp)
-  if (debug) println("vector_r[", i, "]: ", vector_r) end
-  if (debug) println("vector_rm[", i, "]: ", vector_rp) end
-  beta = (transpose(vector_r) * vector_r) / (transpose(vector_rp) * vector_rp)
-  if (debug) println("beta[", i, "]: ", beta) end
-  global vector_z = vector_r + beta * vector_zp
-  if (debug) println("vector_z[", i, "]: ", vector_z) end
-  if (debug) println() end
-  global i += 1
+# Реализация метода сопряжённых градиентов с использованием параллельных вычислений
+function gradients_parallel()
+  matrix_A = read_csc_matrix(matrix_file)
+  vector_b = read_csc_vector(vector_file)
+
+  global vector_x = Array{Float64,1}(zeros(size(matrix_A, 1)))
+  global vector_r = vector_b - mv_multiply(matrix_A, vector_x)
+  global vector_z = vector_r
+
+  if (info) 
+    println("vector_b: ", vector_b)
+    println("matrix_A: ", matrix_A)
+    println("vector_x0: ", vector_x)
+    println("vector_r0: ", vector_r)
+    println("vector_z0: ", vector_z)
+  end
+
+  global i = 1
+  while (eps < (norm(vector_r) / norm(vector_b)) || i <= length(vector_b))
+    local vector_xp = vector_x
+    local vector_rp = vector_r
+    local vector_zp = vector_z
+    alpha = (s_multiply(vector_rp, vector_rp)) / (s_multiply(mv_multiply(matrix_A, vector_zp), vector_zp))
+    if (debug) println("alpha[", i, "]: ", alpha) end
+    global vector_x = vector_xp + alpha * vector_zp
+    if (debug) println("vector_x[", i, "]: ", vector_x) end
+    global vector_r = vector_rp - alpha * mv_multiply(matrix_A, vector_zp)
+    if (debug) println("vector_r[", i, "]: ", vector_r) end
+    if (debug) println("vector_rm[", i, "]: ", vector_rp) end
+    beta = s_multiply(vector_r, vector_r) / s_multiply(vector_rp, vector_rp)
+    if (debug) println("beta[", i, "]: ", beta) end
+    global vector_z = vector_r + beta * vector_zp
+    if (debug) println("vector_z[", i, "]: ", vector_z) end
+    if (debug) println() end
+    global i += 1
+  end
+
+  print("x: ")
+  print_vector(vector_x, "%.3f", eps)
 end
 
-print("x: ")
-print_vector(vector_x, "%.3f", eps)
+t_start = now()
+@time gradients()
+t_end = now()
+println("gradients(): ", t_end - t_start)
 
-println(read_csc_matrix("resources/bcsstk16.csc"))
+t_start = now()
+@time gradients_parallel()
+t_end = now()
+println("gradients_parallel(): ", t_end - t_start)
