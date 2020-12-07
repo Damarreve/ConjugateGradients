@@ -43,8 +43,10 @@ end
 function s_multiply(_vector1, _vector2)
   result = 0.0
   mlen = min(length(_vector1), length(_vector2))
-  @sync @distributed for i = 1:mlen
-    result += _vector1[i] * _vector2[i]
+  # Threads.@threads for i = 1:mlen
+  for i = 1:4:mlen
+    local res = (_vector1[i] * _vector2[i]) + (_vector1[i+1] * _vector2[i+1]) + (_vector1[i+2] * _vector2[i+2]) + (_vector1[i+3] * _vector2[i+3])
+    result += res
   end
   return result
 end
@@ -52,7 +54,7 @@ end
 # Умножение матрицы на вектор
 function mv_multiply(_matrix, _vector)
   result = zeros(length(_vector))
-  @sync @distributed for i = 1:length(result)
+  Threads.@threads for i = 1:length(result)
     result[i] = s_multiply(_matrix[i, :], _vector)
   end
   return result
