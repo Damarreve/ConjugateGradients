@@ -52,6 +52,18 @@ function s_multiply(_vector1, _vector2)
   return result[]
 end
 
+function dep_s_multiply(_vector1, _vector2)
+  result = 0.0
+  mlen = min(length(_vector1), length(_vector2))
+  Threads.@threads for i = 1:mlen
+    if _vector1[i] == 0 || _vector2[i] == 0
+      continue
+    end
+    result += _vector1[i] * _vector2[i]
+  end
+  return result
+end
+
 # Умножение матрицы на вектор
 function mv_multiply(_matrix, _vector)
   result = zeros(length(_vector))
@@ -95,10 +107,7 @@ vector_file = "resources/nos5_vector.csc"
 # vector_file = "resources/bcsstk13_vector.csc"
 
 # Реализация метода сопряжённых градиентов
-function gradients()
-  matrix_A = read_csc_matrix(matrix_file)
-  vector_b = read_csc_vector(vector_file)
-
+function gradients(matrix, vector)
   global vector_x = Array{Float64,1}(zeros(length(vector_b)))
   global vector_r = vector_b - (matrix_A * vector_x)
   global vector_z = vector_r
@@ -119,31 +128,28 @@ function gradients()
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
-    alpha = (transpose(vector_rp) * vector_rp) / (transpose(matrix_A * vector_zp) * vector_zp)
+    mv1 = matrix_A * vector_zp
+    alpha = (transpose(vector_rp) * vector_rp) / (transpose(mv1) * vector_zp)
     if (debug) println("alpha[", i, "]: ", alpha) end
     global vector_x = vector_xp + alpha * vector_zp
     if (debug) println("vector_x[", i, "]: ", vector_x) end
-    global vector_r = vector_rp - alpha * (matrix_A * vector_zp)
+    global vector_r = vector_rp - alpha * (mv1)
     if (debug) println("vector_r[", i, "]: ", vector_r) end
     if (debug) println("vector_rm[", i, "]: ", vector_rp) end
     beta = (transpose(vector_r) * vector_r) / (transpose(vector_rp) * vector_rp)
     if (debug) println("beta[", i, "]: ", beta) end
     global vector_z = vector_r + beta * vector_zp
     if (debug) println("vector_z[", i, "]: ", vector_z) end
-    if (debug) println("Step #", i, " of ", length(vector_b)) end
     global i += 1
   end
 
-  print("x: ")
-  print_vector(vector_x, "%.3f", eps)
+  # print("x: ")
+  # print_vector(vector_x, "%.3f", eps)
 end
 
 # Реализация метода сопряжённых градиентов с использованием параллельных вычислений
-function gradients_parallel()
-  matrix_A = read_csc_matrix(matrix_file)
-  vector_b = read_csc_vector(vector_file)
-
-  global vector_x = Array{Float64,1}(zeros(size(matrix_A, 1)))
+function gradients_parallel(matrix, vector)
+  global vector_x = Array{Float64,1}(zeros(length(vector_b)))
   global vector_r = vector_b - mv_multiply(matrix_A, vector_x)
   global vector_z = vector_r
 
@@ -163,14 +169,17 @@ function gradients_parallel()
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
-    alpha = s_multiply(vector_rp, vector_rp) / s_multiply(mv_multiply(matrix_A, vector_zp), vector_zp)
+    local mv1 = sparse(mv_multiply(matrix_A, vector_zp))
+    alpha = s_multiply(vector_rp, vector_rp) / s_multiply(mv1, vector_zp)
+    # alpha = (transpose(vector_rp) * vector_rp) / (transpose(mv1) * vector_zp)
     if (debug) println("alpha[", i, "]: ", alpha) end
     global vector_x = vector_xp + alpha * vector_zp
     if (debug) println("vector_x[", i, "]: ", vector_x) end
-    global vector_r = vector_rp - alpha * mv_multiply(matrix_A, vector_zp)
+    global vector_r = vector_rp - alpha * mv1
     if (debug) println("vector_r[", i, "]: ", vector_r) end
     if (debug) println("vector_rm[", i, "]: ", vector_rp) end
     beta = s_multiply(vector_r, vector_r) / s_multiply(vector_rp, vector_rp)
+    # beta = (transpose(vector_r) * vector_r) / (transpose(vector_rp) * vector_rp)
     if (debug) println("beta[", i, "]: ", beta) end
     global vector_z = vector_r + beta * vector_zp
     if (debug) println("vector_z[", i, "]: ", vector_z) end
@@ -178,16 +187,19 @@ function gradients_parallel()
     global i += 1
   end
 
-  print("x: ")
-  print_vector(vector_x, "%.3f", eps)
+  # print("x: ")
+  # print_vector(vector_x, "%.3f", eps)
 end
 
+matrix_A = read_csc_matrix(matrix_file)
+vector_b = read_csc_vector(vector_file)
+
 t_start = now()
-@time gradients()
+@time gradients(matrix_A, vector_b)
 t_end = now()
 println("gradients(): ", t_end - t_start)
 
 t_start = now()
-@time gradients_parallel()
+@time gradients_parallel(matrix_A, vector_b)
 t_end = now()
 println("gradients_parallel(): ", t_end - t_start)
