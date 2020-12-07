@@ -33,7 +33,13 @@ public class MtxToCscConverter {
         LinkedList<String> values = new LinkedList<>();
         BufferedReader reader = new BufferedReader(new FileReader(input));
         while ((line = reader.readLine()) != null) {
-            if (skip-- > 0) continue;
+            if (skip-- > 0) {
+                if (skip == 1 && !line.startsWith("%%")) {
+                    System.out.printf("Файл \"%s\" записан не в формате MatrixMarket\n", input.getAbsolutePath());
+                    System.exit(4);
+                }
+                continue;
+            }
             String[] digits = line.split("\\s+");
             rows.add(digits[0].trim() + " ");
             cols.add(digits[1].trim() + " ");

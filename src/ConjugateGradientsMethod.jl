@@ -70,10 +70,10 @@ end
 # Основная часть
 # --------------
 
-matrix_file = "resources/little_matrix.csc"
-# matrix_file = "resources/bcsstm24.csc"
-vector_file = "resources/little_vector.csc"
-# vector_file = "resources/bcsstm24_vector.csc"
+# matrix_file = "resources/little_matrix.csc"
+matrix_file = "resources/nos5.csc"
+# vector_file = "resources/little_vector.csc"
+vector_file = "resources/nos5_vector.csc"
 
 # Реализация метода сопряжённых градиентов
 function gradients()
@@ -162,7 +162,7 @@ t_start = now()
 t_end = now()
 println("gradients(): ", t_end - t_start)
 
-t_start = now()
-@time gradients_parallel()
-t_end = now()
-println("gradients_parallel(): ", t_end - t_start)
+# t_start = now()
+# @time gradients_parallel()
+# t_end = now()
+# println("gradients_parallel(): ", t_end - t_start)
