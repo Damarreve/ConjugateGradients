@@ -41,14 +41,15 @@ end
 
 # Скалярное произведение векторов
 function s_multiply(_vector1, _vector2)
-  result = 0.0
+  result = Threads.Atomic{Float64}(0.0)
   mlen = min(length(_vector1), length(_vector2))
-  # Threads.@threads for i = 1:mlen
-  for i = 1:4:mlen
-    local res = (_vector1[i] * _vector2[i]) + (_vector1[i+1] * _vector2[i+1]) + (_vector1[i+2] * _vector2[i+2]) + (_vector1[i+3] * _vector2[i+3])
-    result += res
+  Threads.@threads for i = 1:mlen
+    if _vector1[i] == 0 || _vector2[i] == 0
+      continue
+    end
+    Threads.atomic_add!(result, _vector1[i] * _vector2[i])
   end
-  return result
+  return result[]
 end
 
 # Умножение матрицы на вектор
@@ -147,7 +148,7 @@ function gradients_parallel()
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
-    alpha = (s_multiply(vector_rp, vector_rp)) / (s_multiply(mv_multiply(matrix_A, vector_zp), vector_zp))
+    alpha = s_multiply(vector_rp, vector_rp) / s_multiply(mv_multiply(matrix_A, vector_zp), vector_zp)
     if (debug) println("alpha[", i, "]: ", alpha) end
     global vector_x = vector_xp + alpha * vector_zp
     if (debug) println("vector_x[", i, "]: ", vector_x) end
