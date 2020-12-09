@@ -1,2 +1,5 @@
 # [Files]
 **/*.class
+
+# [ Dirs ]
+measurements/
