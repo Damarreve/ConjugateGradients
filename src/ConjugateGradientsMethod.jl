@@ -13,12 +13,14 @@ using Distributed
 # -----------------------------------------------
 
 # Требуемая точность
-const eps = 0.001
+const eps = 1e-6
 
 # Вывод процесса в stdout
 const debug = false
 # Вывод входных данных
 const info = false
+# Вывод итераций
+const process = false
 
 # Чтение разреженного вектора из файла
 function read_csc_vector(filename)
@@ -66,8 +68,29 @@ function print_vector(vector, eps)
   for i in vector_x[:]
     print(" ", (abs(i) < eps ? 0 : i))
   end
+  println()
 end
 
+function is_matrix_symmetric(matrix)
+  for i in 1:size(matrix, 1)
+    for j in i+1:size(matrix, 1)
+      if (matrix[i, j] != matrix[j, i])
+        return false
+      end
+    end
+  end
+  return true
+end
+
+function make_matrix_symmetric(matrix)
+  for i in 1:(size(matrix, 1) - 1) 
+    for j in (i + 1):size(matrix, 1)
+      if (matrix[i, j] != matrix[j, i])
+        matrix[j, i] = matrix[i, j]
+      end
+    end
+  end
+end
 
 # --------------
 # Основная часть
@@ -78,8 +101,8 @@ end
 # vector_file = "resources/little_vector.csc"
 
 # 468x468
-# matrix_file = "resources/nos5.csc"
-# vector_file = "resources/nos5_vector.csc"
+matrix_file = "resources/nos5.csc"
+vector_file = "resources/nos5_vector.csc"
 
 # 1074x1074
 # matrix_file = "resources/bcsstk08.csc"
@@ -90,11 +113,12 @@ end
 # vector_file = "resources/bcsstk12_vector.csc"
 
 # 2003x2003
-matrix_file = "resources/bcsstk13.csc"
-vector_file = "resources/bcsstk13_vector.csc"
+# matrix_file = "resources/bcsstk13.csc"
+# vector_file = "resources/bcsstk13_vector.csc"
 
 # Реализация метода сопряжённых градиентов
 function gradients(matrix, vector)
+  println("epsilon: ", eps)
   global vector_x = Array{Float64,1}(zeros(length(vector_b)))
   global vector_r = vector_b - (matrix_A * vector_x)
   global vector_z = vector_r
@@ -109,9 +133,9 @@ function gradients(matrix, vector)
 
   global i = 1
   while (eps < (norm(vector_r) / norm(vector_b)))
-    if i == length(vector_b)
-      break
-    end
+    # if i == length(vector_b)
+    #   break
+    # end
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
@@ -127,15 +151,23 @@ function gradients(matrix, vector)
     if (debug) println("beta[", i, "]: ", beta) end
     global vector_z = vector_r + beta * vector_zp
     if (debug) println("vector_z[", i, "]: ", vector_z) end
+    if (process)
+      println("[#", i, "] alpha: ", alpha)
+      println("[#", i, "] beta: ", beta)
+      print("[#", i, "] vector x: ")
+      print_vector(vector_x, eps)
+      println()
+    end
     global i += 1
   end
 
-  # print("x: ")
-  # print_vector(vector_x, eps)
+  print("x: ")
+  print_vector(vector_x, eps)
 end
 
 # Реализация метода сопряжённых градиентов с использованием параллельных вычислений
 function gradients_parallel(matrix, vector)
+  println("epsilon: ", eps)
   global vector_x = Array{Float64,1}(zeros(length(vector_b)))
   global vector_r = vector_b - mv_multiply(matrix_A, vector_x)
   global vector_z = vector_r
@@ -148,11 +180,12 @@ function gradients_parallel(matrix, vector)
     println("vector_z0: ", vector_z)
   end
 
+  global max_ops = length(vector_b) * 2
   global i = 1
   while (eps < (norm(vector_r) / norm(vector_b)))
-    if i == length(vector_b)
-      break
-    end
+    # if i == max_ops
+    #   break
+    # end
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
@@ -171,22 +204,37 @@ function gradients_parallel(matrix, vector)
     global vector_z = vector_r + beta * vector_zp
     if (debug) println("vector_z[", i, "]: ", vector_z) end
     if (debug) println() end
+    if (process)
+      println("[#", i, "] alpha: ", alpha)
+      println("[#", i, "] beta: ", beta)
+      print("[#", i, "] vector x: ")
+      print_vector(vector_x, eps)
+      println()
+    end
     global i += 1
   end
 
-  # print("x: ")
-  # print_vector(vector_x, eps)
+  print("x: ")
+  print_vector(vector_x, eps)
 end
 
 matrix_A = read_csc_matrix(matrix_file)
 vector_b = read_csc_vector(vector_file)
 
-# t_start = now()
-# @time gradients(matrix_A, vector_b)
-# t_end = now()
-# println("gradients(): ", t_end - t_start)
+if !is_matrix_symmetric(matrix_A)
+  println("Корректируем матрицу - добиваемся симметрии")
+  make_matrix_symmetric(matrix_A)
+end
+
+# vect_x = Array{Float64,1}(zeros(468)) .+ 1.0
+# println(mv_multiply(matrix_A, vect_x))
 
 t_start = now()
-@time gradients_parallel(matrix_A, vector_b)
+@time gradients(matrix_A, vector_b)
 t_end = now()
-println("gradients_parallel(): ", t_end - t_start)
+println("gradients(): ", t_end - t_start)
+
+# t_start = now()
+# @time gradients_parallel(matrix_A, vector_b)
+# t_end = now()
+# println("gradients_parallel(): ", t_end - t_start)
