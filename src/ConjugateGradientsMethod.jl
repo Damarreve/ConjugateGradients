@@ -64,11 +64,12 @@ function mv_multiply(_matrix, _vector)
 end
 
 # Вывод полученного вектора
-function print_vector(vector, eps)
+function print_vector(vector)
+  print("[")
   for i in vector_x[:]
     print(" ", (abs(i) < eps ? 0 : i))
   end
-  println()
+  println("]")
 end
 
 function is_matrix_symmetric(matrix)
@@ -161,8 +162,9 @@ function gradients(matrix, vector)
     global i += 1
   end
 
+  println("Total iterations: ", i - 1)
   print("x: ")
-  print_vector(vector_x, eps)
+  print_vector(vector_x)
 end
 
 # Реализация метода сопряжённых градиентов с использованием параллельных вычислений
@@ -214,27 +216,30 @@ function gradients_parallel(matrix, vector)
     global i += 1
   end
 
+  println("Total iterations: ", i - 1)
   print("x: ")
-  print_vector(vector_x, eps)
+  print_vector(vector_x)
 end
 
 matrix_A = read_csc_matrix(matrix_file)
 vector_b = read_csc_vector(vector_file)
+
+println("Матрица ", matrix_file)
 
 if !is_matrix_symmetric(matrix_A)
   println("Корректируем матрицу - добиваемся симметрии")
   make_matrix_symmetric(matrix_A)
 end
 
-# vect_x = Array{Float64,1}(zeros(468)) .+ 1.0
-# println(mv_multiply(matrix_A, vect_x))
-
-t_start = now()
-@time gradients(matrix_A, vector_b)
-t_end = now()
-println("gradients(): ", t_end - t_start)
+# unit_vector = Array{Float64,1}(zeros(size(matrix_A, 1))) .+ 1
+# println(matrix_A * unit_vector)
 
 # t_start = now()
-# @time gradients_parallel(matrix_A, vector_b)
+# @time gradients(matrix_A, vector_b)
 # t_end = now()
-# println("gradients_parallel(): ", t_end - t_start)
+# println("gradients(): ", t_end - t_start)
+
+t_start = now()
+@time gradients_parallel(matrix_A, vector_b)
+t_end = now()
+println("gradients_parallel(): ", t_end - t_start)
