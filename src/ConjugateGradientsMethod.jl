@@ -1,8 +1,6 @@
 using Dates
-using Printf
 using SparseArrays
 using LinearAlgebra
-using Distributed
 
 # -----------------------------------------------
 #
@@ -72,6 +70,7 @@ function print_vector(vector)
   println("]")
 end
 
+# Проверка матрицы на симметричность
 function is_matrix_symmetric(matrix)
   for i in 1:size(matrix, 1)
     for j in i+1:size(matrix, 1)
@@ -83,6 +82,7 @@ function is_matrix_symmetric(matrix)
   return true
 end
 
+# Превращение несимметричной матрицы в симметричную (копирование верхней правой части в нижнюю левую)
 function make_matrix_symmetric(matrix)
   for i in 1:(size(matrix, 1) - 1) 
     for j in (i + 1):size(matrix, 1)
@@ -133,10 +133,7 @@ function gradients(matrix, vector)
   end
 
   global i = 1
-  while (eps < (norm(vector_r) / norm(vector_b)))
-    # if i == length(vector_b)
-    #   break
-    # end
+  while (eps < (abs(norm(vector_r)) / abs(norm(vector_b))))
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
@@ -184,16 +181,12 @@ function gradients_parallel(matrix, vector)
 
   global max_ops = length(vector_b) * 2
   global i = 1
-  while (eps < (norm(vector_r) / norm(vector_b)))
-    # if i == max_ops
-    #   break
-    # end
+  while (eps < (abs(norm(vector_r)) / abs(norm(vector_b))))
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
     local mv1 = sparse(mv_multiply(matrix_A, vector_zp))
     alpha = s_multiply(vector_rp, vector_rp) / s_multiply(mv1, vector_zp)
-    # alpha = (transpose(vector_rp) * vector_rp) / (transpose(mv1) * vector_zp)
     if (debug) println("alpha[", i, "]: ", alpha) end
     global vector_x = vector_xp + alpha * vector_zp
     if (debug) println("vector_x[", i, "]: ", vector_x) end
@@ -201,7 +194,6 @@ function gradients_parallel(matrix, vector)
     if (debug) println("vector_r[", i, "]: ", vector_r) end
     if (debug) println("vector_rm[", i, "]: ", vector_rp) end
     beta = s_multiply(vector_r, vector_r) / s_multiply(vector_rp, vector_rp)
-    # beta = (transpose(vector_r) * vector_r) / (transpose(vector_rp) * vector_rp)
     if (debug) println("beta[", i, "]: ", beta) end
     global vector_z = vector_r + beta * vector_zp
     if (debug) println("vector_z[", i, "]: ", vector_z) end
@@ -231,13 +223,10 @@ if !is_matrix_symmetric(matrix_A)
   make_matrix_symmetric(matrix_A)
 end
 
-# unit_vector = Array{Float64,1}(zeros(size(matrix_A, 1))) .+ 1
-# println(matrix_A * unit_vector)
-
-# t_start = now()
-# @time gradients(matrix_A, vector_b)
-# t_end = now()
-# println("gradients(): ", t_end - t_start)
+t_start = now()
+@time gradients(matrix_A, vector_b)
+t_end = now()
+println("gradients(): ", t_end - t_start)
 
 t_start = now()
 @time gradients_parallel(matrix_A, vector_b)
