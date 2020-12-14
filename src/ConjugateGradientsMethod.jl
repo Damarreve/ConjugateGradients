@@ -64,7 +64,7 @@ end
 # Вывод полученного вектора
 function print_vector(vector)
   print("[")
-  for i in vector_x[:]
+  for i in vector[:]
     print(" ", (abs(i) < eps ? 0 : i))
   end
   println("]")
@@ -102,8 +102,8 @@ end
 # vector_file = "resources/little_vector.csc"
 
 # 468x468
-matrix_file = "resources/nos5.csc"
-vector_file = "resources/nos5_vector.csc"
+# matrix_file = "resources/nos5.csc"
+# vector_file = "resources/nos5_vector.csc"
 
 # 1074x1074
 # matrix_file = "resources/bcsstk08.csc"
@@ -116,6 +116,11 @@ vector_file = "resources/nos5_vector.csc"
 # 2003x2003
 # matrix_file = "resources/bcsstk13.csc"
 # vector_file = "resources/bcsstk13_vector.csc"
+
+# 10974x10974
+matrix_file = "resources/bcsstk17.csc"
+vector_file = "resources/bcsstk17_vector.csc"
+
 
 # Реализация метода сопряжённых градиентов
 function gradients(matrix, vector)
@@ -228,7 +233,7 @@ t_start = now()
 t_end = now()
 println("gradients(): ", t_end - t_start)
 
-t_start = now()
-@time gradients_parallel(matrix_A, vector_b)
-t_end = now()
-println("gradients_parallel(): ", t_end - t_start)
+# t_start = now()
+# @time gradients_parallel(matrix_A, vector_b)
+# t_end = now()
+# println("gradients_parallel(): ", t_end - t_start)
