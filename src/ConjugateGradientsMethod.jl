@@ -43,20 +43,18 @@ end
 function s_multiply(_vector1, _vector2)
   result = Threads.Atomic{Float64}(0.0)
   mlen = min(length(_vector1), length(_vector2))
-  Threads.@threads for i = 1:mlen
-    if _vector1[i] == 0 || _vector2[i] == 0
-      continue
-    end
-    Threads.atomic_add!(result, _vector1[i] * _vector2[i])
+  range = div(mlen, Threads.nthreads())
+  Threads.@threads for i = 1:range:mlen
+    Threads.atomic_add!(result, dot(view(_vector1, i:min(i + range, mlen)), view(_vector2, i:min(i + range, mlen))))
   end
   return result[]
 end
 
 # Умножение матрицы на вектор
 function mv_multiply(_matrix, _vector)
-  result = zeros(length(_vector))
+  result = zeros(size(_matrix, 1))
   Threads.@threads for i = 1:length(result)
-    result[i] = s_multiply(_matrix[i, :], _vector)
+    result[i] = dot(_matrix[i, :], _vector)
   end
   return result
 end
@@ -106,8 +104,8 @@ end
 # vector_file = "resources/nos5_vector.csc"
 
 # 1074x1074
-# matrix_file = "resources/bcsstk08.csc"
-# vector_file = "resources/bcsstk08_vector.csc"
+matrix_file = "resources/bcsstk08.csc"
+vector_file = "resources/bcsstk08_vector.csc"
 
 # 1473x1473
 # matrix_file = "resources/bcsstk12.csc"
@@ -118,8 +116,8 @@ end
 # vector_file = "resources/bcsstk13_vector.csc"
 
 # 10974x10974
-matrix_file = "resources/bcsstk17.csc"
-vector_file = "resources/bcsstk17_vector.csc"
+# matrix_file = "resources/bcsstk17.csc"
+# vector_file = "resources/bcsstk17_vector.csc"
 
 
 # Реализация метода сопряжённых градиентов
@@ -173,7 +171,7 @@ end
 function gradients_parallel(matrix, vector)
   println("epsilon: ", eps)
   global vector_x = Array{Float64,1}(zeros(length(vector_b)))
-  global vector_r = vector_b - mv_multiply(matrix_A, vector_x)
+  global vector_r = vector_b - matrix_A * vector_x
   global vector_z = vector_r
 
   if (info) 
@@ -184,13 +182,13 @@ function gradients_parallel(matrix, vector)
     println("vector_z0: ", vector_z)
   end
 
-  global max_ops = length(vector_b) * 2
   global i = 1
   while (eps < (abs(norm(vector_r)) / abs(norm(vector_b))))
     local vector_xp = vector_x
     local vector_rp = vector_r
     local vector_zp = vector_z
-    local mv1 = sparse(mv_multiply(matrix_A, vector_zp))
+    local mv1 = mv_multiply(matrix_A, vector_zp)
+    # local mv1 = matrix_A * vector_zp
     alpha = s_multiply(vector_rp, vector_rp) / s_multiply(mv1, vector_zp)
     if (debug) println("alpha[", i, "]: ", alpha) end
     global vector_x = vector_xp + alpha * vector_zp
@@ -233,7 +231,7 @@ t_start = now()
 t_end = now()
 println("gradients(): ", t_end - t_start)
 
-# t_start = now()
-# @time gradients_parallel(matrix_A, vector_b)
-# t_end = now()
-# println("gradients_parallel(): ", t_end - t_start)
+t_start = now()
+@time gradients_parallel(matrix_A, vector_b)
+t_end = now()
+println("gradients_parallel(): ", t_end - t_start)
