@@ -104,8 +104,8 @@ end
 # vector_file = "resources/nos5_vector.csc"
 
 # 1074x1074
-matrix_file = "resources/bcsstk08.csc"
-vector_file = "resources/bcsstk08_vector.csc"
+# matrix_file = "resources/bcsstk08.csc"
+# vector_file = "resources/bcsstk08_vector.csc"
 
 # 1473x1473
 # matrix_file = "resources/bcsstk12.csc"
@@ -116,8 +116,8 @@ vector_file = "resources/bcsstk08_vector.csc"
 # vector_file = "resources/bcsstk13_vector.csc"
 
 # 10974x10974
-# matrix_file = "resources/bcsstk17.csc"
-# vector_file = "resources/bcsstk17_vector.csc"
+matrix_file = "resources/bcsstk17.csc"
+vector_file = "resources/bcsstk17_vector.csc"
 
 
 # Реализация метода сопряжённых градиентов
@@ -231,7 +231,7 @@ t_start = now()
 t_end = now()
 println("gradients(): ", t_end - t_start)
 
-t_start = now()
-@time gradients_parallel(matrix_A, vector_b)
-t_end = now()
-println("gradients_parallel(): ", t_end - t_start)
+# t_start = now()
+# @time gradients_parallel(matrix_A, vector_b)
+# t_end = now()
+# println("gradients_parallel(): ", t_end - t_start)
